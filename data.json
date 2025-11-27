@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "generated": "2025-11-28T06:45:58.248366",
+    "version": "1.0.0",
+    "cost_model": "Opus 4 @ $15/$75 per 1M"
+  },
+  "instances": [
+    {
+      "instance_id": "django__django-11099",
+      "repo": "django/django",
+      "version": "3.0",
+      "language": "Python",
+      "difficulty": "Easy",
+      "category": "regex",
+      "status": "SOLVED",
+      "patch_accuracy": 100,
+      "duration_minutes": 10.0,
+      "tool_calls": 22,
+      "blockers_count": 4,
+      "second_guesses": 6,
+      "tokens_input": 45000,
+      "tokens_output": 8500,
+      "tokens_total": 53500,
+      "cost": 0.4375,
+      "blockers": [
+        {
+          "type": "Python Version",
+          "description": "Python 3.13 incompatible with Django 3.0",
+          "resolution": "Standalone regex test",
+          "time_lost_min": 2
+        },
+        {
+          "type": "PATH Issues",
+          "description": "PowerShell session missing python/git in PATH",
+          "resolution": "Used full paths",
+          "time_lost_min": 1
+        },
+        {
+          "type": "Missing Deps",
+          "description": "distutils removed in Python 3.12+",
+          "resolution": "Bypassed Django harness",
+          "time_lost_min": 1
+        },
+        {
+          "type": "String Escaping",
+          "description": "PowerShell heredoc escaping issues",
+          "resolution": "Fixed syntax",
+          "time_lost_min": 0.5
+        }
+      ],
+      "tools_used": {
+        "execute_powershell": 16,
+        "phishri_bootstrap": 1,
+        "phishri_find_door": 1,
+        "git_diff": 1,
+        "everything_search": 2,
+        "recent_chats": 1
+      },
+      "files_modified": [
+        "django/contrib/auth/validators.py"
+      ],
+      "lessons": [
+        "Pre-check Python version requirements before cloning",
+        "Use standalone tests when harness fails",
+        "Consider Docker for version-specific Python"
+      ]
+    }
+  ]
+}
