@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWE-Bench Dashboard</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --card-hover: #273449;
+            --border: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+        h1 { font-size: 1.5rem; font-weight: 600; }
+        .header-right { text-align: right; }
+        .timestamp { color: var(--text-dim); font-size: 0.875rem; }
+        .version { color: var(--accent); font-size: 0.75rem; }
+
+        /* Grid layouts */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            transition: all 0.2s;
+        }
+        .card:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+        }
+        .card-label {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .card-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+        .card-sub { color: var(--text-dim); font-size: 0.875rem; }
+        .success { color: var(--success); }
+        .warning { color: var(--warning); }
+        .error { color: var(--error); }
+
+        /* Section titles */
+        .section-title {
+            font-size: 1rem;
+            margin: 2rem 0 1rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            color: var(--text-dim);
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover { color: var(--accent); }
+        th.sorted::after { content: ' ▼'; }
+        th.sorted.asc::after { content: ' ▲'; }
+        tr:hover { background: var(--card-hover); }
+
+        /* Status indicators */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-dot.solved { background: var(--success); }
+        .status-dot.failed { background: var(--error); }
+        .status-dot.partial { background: var(--warning); }
+
+        /* Progress bars */
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        /* Sparkline placeholder */
+        .sparkline {
+            font-family: monospace;
+            letter-spacing: -2px;
+            color: var(--accent);
+        }
+
+        /* Blocker tags */
+        .blocker-tag {
+            display: inline-block;
+            background: var(--border);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin: 0.125rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>SWE-Bench Dashboard</h1>
+            <div class="version">v1.0.0 · PhiSHRI Integration</div>
+        </div>
+        <div class="header-right">
+            <div class="timestamp" id="timestamp">Loading...</div>
+            <div class="timestamp" id="instance-count"></div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid" id="summary-cards">
+        <div class="card">
+            <div class="card-label">Solve Rate</div>
+            <div class="card-value" id="solve-rate">-</div>
+            <div class="card-sub" id="solve-count">Loading...</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Total Duration</div>
+            <div class="card-value" id="total-duration">-</div>
+            <div class="card-sub">minutes</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Total Tokens</div>
+            <div class="card-value" id="total-tokens">-</div>
+            <div class="card-sub" id="token-breakdown">-</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Total Cost</div>
+            <div class="card-value" id="total-cost">-</div>
+            <div class="card-sub" id="cost-model">-</div>
+        </div>
+    </div>
+
+    <!-- Average Metrics -->
+    <div class="grid">
+        <div class="card">
+            <div class="card-label">Avg Duration</div>
+            <div class="card-value" id="avg-duration">-</div>
+            <div class="card-sub">min per instance</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Avg Tool Calls</div>
+            <div class="card-value" id="avg-tools">-</div>
+            <div class="card-sub">per instance</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Avg Blockers</div>
+            <div class="card-value" id="avg-blockers">-</div>
+            <div class="card-sub">per instance</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Avg Cost</div>
+            <div class="card-value" id="avg-cost">-</div>
+            <div class="card-sub">per instance</div>
+        </div>
+    </div>
+
+    <!-- Performance by Language -->
+    <div class="section-title">Performance by Language</div>
+    <div class="grid grid-3" id="language-cards">
+        <!-- Populated by JS -->
+    </div>
+
+    <!-- Performance by Repository -->
+    <div class="section-title">Performance by Repository</div>
+    <div class="grid grid-3" id="repo-cards">
+        <!-- Populated by JS -->
+    </div>
+
+    <!-- Top Blockers -->
+    <div class="section-title">Top Blockers</div>
+    <div class="card">
+        <table id="blockers-table">
+            <thead>
+                <tr>
+                    <th>Blocker Type</th>
+                    <th>Occurrences</th>
+                    <th>% of Runs</th>
+                    <th>Avg Time Lost</th>
+                </tr>
+            </thead>
+            <tbody id="blockers-body">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Instance Details -->
+    <div class="section-title">Instance Details</div>
+
+    <div class="filters">
+        <button class="filter-btn active" onclick="filterInstances('all')">All</button>
+        <button class="filter-btn" onclick="filterInstances('solved')">Solved</button>
+        <button class="filter-btn" onclick="filterInstances('failed')">Failed</button>
+        <button class="filter-btn" onclick="filterInstances('python')">Python</button>
+        <button class="filter-btn" onclick="filterInstances('javascript')">JavaScript</button>
+        <button class="filter-btn" onclick="filterInstances('slow')">Slowest 20%</button>
+    </div>
+
+    <div class="card">
+        <table id="instances-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Instance</th>
+                    <th onclick="sortTable(1)">Status</th>
+                    <th onclick="sortTable(2)">Language</th>
+                    <th onclick="sortTable(3)">Duration</th>
+                    <th onclick="sortTable(4)">Tools</th>
+                    <th onclick="sortTable(5)">Blockers</th>
+                    <th onclick="sortTable(6)">Tokens</th>
+                    <th onclick="sortTable(7)">Cost</th>
+                </tr>
+            </thead>
+            <tbody id="instances-body">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <div>
+            <a href="https://github.com/Stryk91/SWE-benchmark-metrics-commando">GitHub</a> ·
+            <a href="https://github.com/Stryk91/PhiSHRI">PhiSHRI</a>
+        </div>
+        <div>
+            Built with PhiSHRI · Powered by Claude
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // DATA LOADING
+        // ============================================================================
+
+        let allInstances = [];
+        let currentFilter = 'all';
+        let sortColumn = 0;
+        let sortAsc = true;
+
+        async function loadData() {
+            try {
+                const response = await fetch('data.json');
+                const data = await response.json();
+                allInstances = data.instances || [];
+                renderDashboard(data);
+            } catch (e) {
+                console.error('Failed to load data:', e);
+                document.getElementById('instances-body').innerHTML =
+                    '<tr><td colspan="8" class="empty-state">No data.json found. Add your run data!</td></tr>';
+            }
+        }
+
+        // ============================================================================
+        // RENDERING
+        // ============================================================================
+
+        function renderDashboard(data) {
+            const instances = data.instances || [];
+            const meta = data.meta || {};
+
+            // Timestamp
+            document.getElementById('timestamp').textContent =
+                `Generated: ${meta.generated || new Date().toISOString()}`;
+            document.getElementById('instance-count').textContent =
+                `${instances.length} instances tracked`;
+
+            // Calculate metrics
+            const solved = instances.filter(i => i.status === 'SOLVED').length;
+            const total = instances.length;
+            const solveRate = total > 0 ? ((solved / total) * 100).toFixed(1) : 0;
+
+            const totalDuration = instances.reduce((sum, i) => sum + (i.duration_minutes || 0), 0);
+            const totalTokens = instances.reduce((sum, i) => sum + (i.tokens_total || 0), 0);
+            const totalInputTokens = instances.reduce((sum, i) => sum + (i.tokens_input || 0), 0);
+            const totalOutputTokens = instances.reduce((sum, i) => sum + (i.tokens_output || 0), 0);
+            const totalCost = instances.reduce((sum, i) => sum + (i.cost || 0), 0);
+            const totalTools = instances.reduce((sum, i) => sum + (i.tool_calls || 0), 0);
+            const totalBlockers = instances.reduce((sum, i) => sum + (i.blockers_count || 0), 0);
+
+            // Summary cards
+            const rateEl = document.getElementById('solve-rate');
+            rateEl.textContent = `${solveRate}%`;
+            rateEl.className = `card-value ${solveRate >= 70 ? 'success' : solveRate >= 40 ? 'warning' : 'error'}`;
+            document.getElementById('solve-count').textContent = `${solved} / ${total} instances`;
+
+            document.getElementById('total-duration').textContent = totalDuration.toFixed(1);
+            document.getElementById('total-tokens').textContent = totalTokens.toLocaleString();
+            document.getElementById('token-breakdown').textContent =
+                `${totalInputTokens.toLocaleString()} in / ${totalOutputTokens.toLocaleString()} out`;
+            document.getElementById('total-cost').textContent = `$${totalCost.toFixed(2)}`;
+            document.getElementById('cost-model').textContent = meta.cost_model || 'Opus @ $15/$75 per 1M';
+
+            // Averages
+            if (total > 0) {
+                document.getElementById('avg-duration').textContent = (totalDuration / total).toFixed(1);
+                document.getElementById('avg-tools').textContent = (totalTools / total).toFixed(1);
+                document.getElementById('avg-blockers').textContent = (totalBlockers / total).toFixed(1);
+                document.getElementById('avg-cost').textContent = `$${(totalCost / total).toFixed(2)}`;
+            }
+
+            // Language breakdown
+            renderLanguageCards(instances);
+
+            // Repo breakdown
+            renderRepoCards(instances);
+
+            // Blockers
+            renderBlockers(instances);
+
+            // Instance table
+            renderInstances(instances);
+        }
+
+        function renderLanguageCards(instances) {
+            const byLang = {};
+            instances.forEach(i => {
+                const lang = i.language || 'Unknown';
+                if (!byLang[lang]) byLang[lang] = { solved: 0, total: 0 };
+                byLang[lang].total++;
+                if (i.status === 'SOLVED') byLang[lang].solved++;
+            });
+
+            const container = document.getElementById('language-cards');
+            container.innerHTML = Object.entries(byLang)
+                .sort((a, b) => b[1].total - a[1].total)
+                .map(([lang, stats]) => {
+                    const rate = ((stats.solved / stats.total) * 100).toFixed(0);
+                    const color = rate >= 70 ? 'success' : rate >= 40 ? 'warning' : 'error';
+                    return `
+                        <div class="card">
+                            <div class="card-label">${lang}</div>
+                            <div class="card-value ${color}">${rate}%</div>
+                            <div class="card-sub">${stats.solved}/${stats.total} solved</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${color}" style="width: ${rate}%; background: var(--${color})"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') || '<div class="card"><div class="empty-state">No language data</div></div>';
+        }
+
+        function renderRepoCards(instances) {
+            const byRepo = {};
+            instances.forEach(i => {
+                const repo = i.repo || 'Unknown';
+                if (!byRepo[repo]) byRepo[repo] = { solved: 0, total: 0 };
+                byRepo[repo].total++;
+                if (i.status === 'SOLVED') byRepo[repo].solved++;
+            });
+
+            const container = document.getElementById('repo-cards');
+            container.innerHTML = Object.entries(byRepo)
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 6) // Top 6 repos
+                .map(([repo, stats]) => {
+                    const rate = ((stats.solved / stats.total) * 100).toFixed(0);
+                    const color = rate >= 70 ? 'success' : rate >= 40 ? 'warning' : 'error';
+                    const shortRepo = repo.split('/').pop();
+                    return `
+                        <div class="card">
+                            <div class="card-label">${shortRepo}</div>
+                            <div class="card-value ${color}">${rate}%</div>
+                            <div class="card-sub">${stats.solved}/${stats.total} solved</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${rate}%; background: var(--${color})"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') || '<div class="card"><div class="empty-state">No repo data</div></div>';
+        }
+
+        function renderBlockers(instances) {
+            const blockerCounts = {};
+            instances.forEach(i => {
+                (i.blockers || []).forEach(b => {
+                    const type = b.type || 'Unknown';
+                    if (!blockerCounts[type]) blockerCounts[type] = { count: 0, time: 0 };
+                    blockerCounts[type].count++;
+                    blockerCounts[type].time += b.time_lost_min || 0;
+                });
+            });
+
+            const total = instances.length || 1;
+            const tbody = document.getElementById('blockers-body');
+            tbody.innerHTML = Object.entries(blockerCounts)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 5)
+                .map(([type, stats]) => `
+                    <tr>
+                        <td><span class="blocker-tag">${type}</span></td>
+                        <td>${stats.count}</td>
+                        <td>${((stats.count / total) * 100).toFixed(0)}%</td>
+                        <td>${(stats.time / stats.count).toFixed(1)} min</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" class="empty-state">No blockers recorded</td></tr>';
+        }
+
+        function renderInstances(instances) {
+            const filtered = filterData(instances);
+            const sorted = sortData(filtered);
+
+            const tbody = document.getElementById('instances-body');
+            tbody.innerHTML = sorted.map(i => `
+                <tr data-lang="${(i.language || '').toLowerCase()}" data-status="${(i.status || '').toLowerCase()}">
+                    <td title="${i.instance_id}">${truncate(i.instance_id, 30)}</td>
+                    <td>
+                        <span class="status">
+                            <span class="status-dot ${(i.status || '').toLowerCase()}"></span>
+                            ${i.status || '-'}
+                        </span>
+                    </td>
+                    <td>${i.language || '-'}</td>
+                    <td>${i.duration_minutes?.toFixed(1) || '-'} min</td>
+                    <td>${i.tool_calls || '-'}</td>
+                    <td>${i.blockers_count || '-'}</td>
+                    <td>${(i.tokens_total || 0).toLocaleString()}</td>
+                    <td>$${(i.cost || 0).toFixed(2)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="8" class="empty-state">No instances match filter</td></tr>';
+        }
+
+        // ============================================================================
+        // FILTERING & SORTING
+        // ============================================================================
+
+        function filterData(instances) {
+            switch (currentFilter) {
+                case 'solved':
+                    return instances.filter(i => i.status === 'SOLVED');
+                case 'failed':
+                    return instances.filter(i => i.status === 'FAILED');
+                case 'python':
+                    return instances.filter(i => (i.language || '').toLowerCase() === 'python');
+                case 'javascript':
+                    return instances.filter(i => (i.language || '').toLowerCase() === 'javascript');
+                case 'slow':
+                    const sorted = [...instances].sort((a, b) => (b.duration_minutes || 0) - (a.duration_minutes || 0));
+                    return sorted.slice(0, Math.ceil(sorted.length * 0.2));
+                default:
+                    return instances;
+            }
+        }
+
+        function filterInstances(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filter) ||
+                    (filter === 'all' && btn.textContent === 'All'));
+            });
+            renderInstances(allInstances);
+        }
+
+        function sortData(instances) {
+            return [...instances].sort((a, b) => {
+                let aVal, bVal;
+                switch (sortColumn) {
+                    case 0: aVal = a.instance_id || ''; bVal = b.instance_id || ''; break;
+                    case 1: aVal = a.status || ''; bVal = b.status || ''; break;
+                    case 2: aVal = a.language || ''; bVal = b.language || ''; break;
+                    case 3: aVal = a.duration_minutes || 0; bVal = b.duration_minutes || 0; break;
+                    case 4: aVal = a.tool_calls || 0; bVal = b.tool_calls || 0; break;
+                    case 5: aVal = a.blockers_count || 0; bVal = b.blockers_count || 0; break;
+                    case 6: aVal = a.tokens_total || 0; bVal = b.tokens_total || 0; break;
+                    case 7: aVal = a.cost || 0; bVal = b.cost || 0; break;
+                    default: return 0;
+                }
+                if (typeof aVal === 'string') {
+                    return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                return sortAsc ? aVal - bVal : bVal - aVal;
+            });
+        }
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortAsc = !sortAsc;
+            } else {
+                sortColumn = column;
+                sortAsc = true;
+            }
+
+            // Update header styles
+            document.querySelectorAll('th').forEach((th, i) => {
+                th.classList.remove('sorted', 'asc');
+                if (i === column) {
+                    th.classList.add('sorted');
+                    if (sortAsc) th.classList.add('asc');
+                }
+            });
+
+            renderInstances(allInstances);
+        }
+
+        // ============================================================================
+        // UTILS
+        // ============================================================================
+
+        function truncate(str, len) {
+            return str && str.length > len ? str.slice(0, len) + '...' : str;
+        }
+
+        // ============================================================================
+        // INIT
+        // ============================================================================
+
+        loadData();
+    </script>
+</body>
+</html>
