@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="120">
+  <rect width="800" height="120" fill="#0f172a"/>
+  <text x="400" y="70" font-family="monospace" font-size="32" fill="#e2e8f0" text-anchor="middle">
+    SWE-BENCH DASHBOARD
+  </text>
+</svg>
